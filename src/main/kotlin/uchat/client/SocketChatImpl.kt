@@ -53,10 +53,11 @@ class SocketChatImpl(
     private fun handleNewMessages(messages: Iterable<MessageResponse>) {
         this.messages.addAll(messages)
 
-        val usersToFetch = mutableSetOf<Long>()
-        for (message in messages) {
-            if (users.none { it.id == message.ownerId })
-                usersToFetch.add(message.ownerId)
+        val usersToFetch = buildList {
+            for (message in messages) {
+                if (users.none { it.id == message.ownerId })
+                    add(message.ownerId)
+            }
         }
 
         sendRequest(FetchAccountsByIdsRequest(usersToFetch))

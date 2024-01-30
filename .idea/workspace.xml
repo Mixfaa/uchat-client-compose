@@ -18,8 +18,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Kotlin File" />
         <option value="Kotlin Class" />
+        <option value="Kotlin File" />
       </list>
     </option>
   </component>
@@ -33,12 +33,14 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Gradle.Build uchat-client-compose.executor": "Run",
     "Gradle.Build uchat-client.executor": "Run",
     "Kotlin.MainKt.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/mishu/programming_projects/java_kotlin/uchat-client/src/main/kotlin/model/message",
+    "last_opened_file_path": "C:/Users/mishu/programming_projects/java_kotlin/uchat-client-compose",
     "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>
@@ -47,6 +49,10 @@
       <recent name="C:\Users\mishu\programming_projects\java_kotlin\uchat-client\src\main\kotlin\model\message" />
       <recent name="C:\Users\mishu\programming_projects\java_kotlin\uchat-client\src\main\kotlin\model\message\transactions" />
       <recent name="C:\Users\mishu\programming_projects\java_kotlin\uchat-client\src\main\kotlin\model" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\mishu\programming_projects\java_kotlin\uchat-client-compose\src\main\kotlin\uchat\message\transactions" />
+      <recent name="C:\Users\mishu\programming_projects\java_kotlin\uchat-client-compose\src\dead_code" />
     </key>
   </component>
   <component name="RunManager" selected="Kotlin.MainKt">
