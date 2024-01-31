@@ -10,7 +10,7 @@ import java.net.Socket
 abstract class SocketChatClient(
     address: String,
     port: Int,
-    protected val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) : AutoCloseable {
     private val socket = Socket(InetAddress.getByName(address), port)
 

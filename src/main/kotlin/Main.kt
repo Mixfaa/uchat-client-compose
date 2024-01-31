@@ -80,27 +80,29 @@ fun mainScreen() {
     val users = mutableStateListOf<Account>().also {
         it.addAll(socketChat.users)
     }
+    remember {
+        socketChat.transactionCallback = { transaction ->
+            when (transaction) {
+                is ChatResponse, is FetchChatsResponse, is DeleteChatResponse -> {
+                    chats.clear()
+                    chats.addAll(socketChat.chats)
+                }
 
-    socketChat.transactionCallback = { transaction ->
-        when (transaction) {
-            is ChatResponse, is FetchChatsResponse, is DeleteChatResponse -> {
-                chats.clear()
-                chats.addAll(socketChat.chats)
+                is MessageResponse, is MessageEditResponse, is MessageDeleteResponse, is FetchChatMessagesRequest -> {
+                    messages.clear()
+                    messages.addAll(socketChat.messages)
+                }
+
+                is FetchAccountsResponse -> {
+                    users.clear()
+                    users.addAll(socketChat.users)
+                }
+
+                else -> {}
             }
-
-            is MessageResponse, is MessageEditResponse, is MessageDeleteResponse, is FetchChatMessagesRequest -> {
-                messages.clear()
-                messages.addAll(socketChat.messages)
-            }
-
-            is FetchAccountsResponse -> {
-                users.clear()
-                users.addAll(socketChat.users)
-            }
-
-            else -> {}
         }
     }
+
 
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(
@@ -187,8 +189,7 @@ fun mainScreen() {
                         Row(Modifier.fillMaxWidth()) {
                             val owner = users.find { user -> user.id == message.ownerId }
                             Text("${message.message} ${owner ?: ""}")
-                            if (owner == socketChat.currentUser) Icon(
-                                Icons.Filled.Delete,
+                            if (owner == socketChat.currentUser) Icon(Icons.Filled.Delete,
                                 "Delete message",
                                 Modifier.clickable {
                                     socketChat.sendRequest(MessageDeleteRequest(message.messageId))
