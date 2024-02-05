@@ -7,7 +7,7 @@ class SocketChatImpl(
     address: String,
     port: Int,
     var errorCallback: (String) -> Unit,
-    var transactionCallback: (TransactionBase) -> Unit
+    var transactionCallback: (TransactionBase) -> Unit,
 ) : SocketChatClient(address, port) {
     private var isLoggedIn = false
 
@@ -18,6 +18,8 @@ class SocketChatImpl(
         private set
 
     override fun handleTransaction(transaction: TransactionBase) {
+        println(transaction)
+
         if (!isLoggedIn) // we wait for LoginResponse
         {
             if (transaction is LoginResponse) {

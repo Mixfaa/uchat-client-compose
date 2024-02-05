@@ -17,10 +17,30 @@ import androidx.compose.ui.window.application
 import uchat.client.SocketChatImpl
 import uchat.message.Account
 import uchat.message.transactions.*
+import uchat.misc.Utils
+import uchat.misc.asPrivateKey
+import uchat.misc.decodeB64
+import uchat.misc.encodeB64
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.security.Key
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.Security
+import kotlin.io.encoding.ExperimentalEncodingApi
+
+fun generateKeyPair(): KeyPair {
+    val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(2048)
+    return keyPairGenerator.generateKeyPair()
+}
 
 private val defaultRoundedShape = RoundedCornerShape(15.dp)
 private val socketChat = SocketChatImpl("192.168.0.59", 8080, ::println, {}) // а мне похуй (пока что)
 
+private lateinit var privateKey: Key
+
+@OptIn(ExperimentalEncodingApi::class)
 @Composable
 fun loginScreen() {
     var username by remember { mutableStateOf("") }
@@ -37,10 +57,36 @@ fun loginScreen() {
             TextField(username, { username = it })
             Text("Password:")
             TextField(password, { password = it })
+
             Button({
-                socketChat.sendRequest(LoginRequest(username, password))
+                FileInputStream("private_key.pk").use {
+                    privateKey = it.readBytes().decodeB64().asPrivateKey()
+                    println("Loaded")
+                    println(privateKey)
+                }
+            }) {
+                Text("Load private key")
+            }
+            Button({
+                socketChat.sendRequest(LoginRequest(username, password, null))
             }) {
                 Text("Login")
+            }
+            Button({
+                val keyPair = generateKeyPair()
+                socketChat.sendRequest(
+                    LoginRequest(
+                        username,
+                        password,
+                        keyPair.public.encoded.encodeB64()
+                    )
+                )
+                privateKey = keyPair.private
+                FileOutputStream("private_key.pk").use {
+                    it.write(keyPair.private.encoded.encodeB64())
+                }
+            }) {
+                Text("Register")
             }
         }
     }
@@ -80,29 +126,27 @@ fun mainScreen() {
     val users = mutableStateListOf<Account>().also {
         it.addAll(socketChat.users)
     }
-    remember {
-        socketChat.transactionCallback = { transaction ->
-            when (transaction) {
-                is ChatResponse, is FetchChatsResponse, is DeleteChatResponse -> {
-                    chats.clear()
-                    chats.addAll(socketChat.chats)
-                }
 
-                is MessageResponse, is MessageEditResponse, is MessageDeleteResponse, is FetchChatMessagesRequest -> {
-                    messages.clear()
-                    messages.addAll(socketChat.messages)
-                }
-
-                is FetchAccountsResponse -> {
-                    users.clear()
-                    users.addAll(socketChat.users)
-                }
-
-                else -> {}
+    socketChat.transactionCallback = { transaction ->
+        when (transaction) {
+            is ChatResponse, is FetchChatsResponse, is DeleteChatResponse -> {
+                chats.clear()
+                chats.addAll(socketChat.chats)
             }
+
+            is MessageResponse, is MessageEditResponse, is MessageDeleteResponse, is FetchChatMessagesRequest -> {
+                messages.clear()
+                messages.addAll(socketChat.messages)
+            }
+
+            is FetchAccountsResponse -> {
+                users.clear()
+                users.addAll(socketChat.users)
+            }
+
+            else -> {}
         }
     }
-
 
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(
@@ -130,7 +174,8 @@ fun mainScreen() {
                         TextField(chatName, { chatName = it })
                         Button({
                             createChatDropdown = false
-                            socketChat.sendRequest(CreateChatRequest(chatName, participantsIds))
+                            if (participantsIds.size > 1)
+                                socketChat.sendRequest(CreateChatRequest(chatName, participantsIds.toSet(), null, null))
                         }) {
                             Text("Create chat!")
                         }
@@ -188,7 +233,16 @@ fun mainScreen() {
                     messages.asSequence().filter { it.chatId == chat.chatId }.forEach { message ->
                         Row(Modifier.fillMaxWidth()) {
                             val owner = users.find { user -> user.id == message.ownerId }
-                            Text("${message.message} ${owner ?: ""}")
+
+                            val symmetric = Utils.decryptSymmetricKey(
+                                chat.encryptedSymmetric,
+                                chat.encryptedDecryptionKey.encryptedPrivateKey,
+                                privateKey
+                            )
+
+                            val decrypted = Utils.decryptMessage(message.message, symmetric)
+
+                            Text("$decrypted ${owner ?: ""}")
                             if (owner == socketChat.currentUser) Icon(Icons.Filled.Delete,
                                 "Delete message",
                                 Modifier.clickable {
@@ -201,7 +255,13 @@ fun mainScreen() {
                     var textMessage by remember { mutableStateOf("") }
                     TextField(textMessage, { textMessage = it })
                     Button({
-                        socketChat.sendRequest(MessageRequest(chat.chatId, MessageType.TEXT, textMessage))
+                        val symmetric = Utils.decryptSymmetricKey(
+                            chat.encryptedSymmetric.decodeB64(),
+                            chat.encryptedDecryptionKey.encryptedPrivateKey.decodeB64(),
+                            privateKey
+                        )
+                        val encrypted = Utils.encryptMessageWithSymmetric(textMessage, symmetric)
+                        socketChat.sendRequest(MessageRequest(chat.chatId, MessageType.TEXT, encrypted))
                     }) {
                         Text("Send message")
                     }
@@ -211,17 +271,20 @@ fun mainScreen() {
     }
 }
 
-fun main() = application {
-    Window(onCloseRequest = ::exitApplication) {
-        MaterialTheme(colors = lightColors()) {
-            var isLoggedIn by remember { mutableStateOf(false) }
-            socketChat.transactionCallback = {
-                if (it is LoginResponse) isLoggedIn = true
-            }
+fun main() {
+    Security.addProvider(org.bouncycastle.jce.provider.BouncyCastleProvider())
+    application {
+        Window(onCloseRequest = ::exitApplication) {
+            MaterialTheme(colors = lightColors()) {
+                var isLoggedIn by remember { mutableStateOf(false) }
+                socketChat.transactionCallback = {
+                    if (it is LoginResponse) isLoggedIn = true
+                }
 
-            if (isLoggedIn) mainScreen()
-            else loginScreen()
+                if (isLoggedIn) mainScreen()
+                else loginScreen()
+            }
         }
     }
-}
 
+}
