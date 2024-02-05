@@ -1,8 +1,5 @@
 package uchat.misc
 
-import uchat.message.transactions.B64EncryptedPrivateKey
-import uchat.message.transactions.B64EncryptedSymmetric
-import uchat.message.transactions.B64PublicKey
 import java.security.Key
 import java.security.KeyFactory
 import java.security.spec.PKCS8EncodedKeySpec
@@ -34,21 +31,17 @@ object Utils {
         return cipher.doFinal(data)
     }
 
-    fun decryptSymmetic(data: ByteArray, key: Key, transformation: String, keyAlgo: String): SecretKey {
-        return SecretKeySpec(decrypt(data, key, transformation), keyAlgo)
-    }
-
     fun encryptMessageWithSymmetric(message: String, symmetric: Key): ByteArray {
         return encrypt(message.toByteArray(), symmetric, "AES")
     }
 
     fun decryptSymmetricKey(
         encryptedSymmetric: ByteArray,
-        encryptedKey: ByteArray,
+        encryptedSymmetric2: ByteArray,
         key: Key
     ): Key {
-        val encryptedPrivateKey = decrypt(encryptedKey, key, DEFAULT_CIPHER_ALGO).decodeB64().asPrivateKey()
-        return decryptSymmetic(encryptedSymmetric, encryptedPrivateKey, DEFAULT_CIPHER_ALGO, "AES")
+        val decryptedSymmetric = decrypt(encryptedSymmetric2, key, DEFAULT_CIPHER_ALGO).asSymmetric()
+        return decrypt(encryptedSymmetric, decryptedSymmetric, "AES").asSymmetric()
     }
 
     fun decryptMessage(
@@ -68,7 +61,7 @@ fun ByteArray.asPrivateKey(): Key {
     return KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(this))
 }
 
-fun ByteArray.asSymmetric() : SecretKey {
+fun ByteArray.asSymmetric(): SecretKey {
     return SecretKeySpec(this, "AES")
 }
 

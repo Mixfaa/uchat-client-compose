@@ -249,7 +249,7 @@ fun mainScreen() {
 
                             val decrypted = Utils.decryptMessage(message.message, symmetric)
 
-                            Text("$decrypted ${owner ?: ""}")
+                            Text("$decrypted ${owner?.username ?: ""}")
                             if (owner == socketChat.currentUser) Icon(Icons.Filled.Delete,
                                 "Delete message",
                                 Modifier.clickable {
