@@ -18,8 +18,6 @@ class SocketChatImpl(
         private set
 
     override fun handleTransaction(transaction: TransactionBase) {
-        println(transaction)
-
         if (!isLoggedIn) // we wait for LoginResponse
         {
             if (transaction is LoginResponse) {

@@ -69,6 +69,11 @@ fun loginScreen() {
             }
             Button({
                 socketChat.sendRequest(LoginRequest(username, password, null))
+                FileInputStream("private_key.pk").use {
+                    privateKey = it.readBytes().decodeB64().asPrivateKey()
+                    println("Loaded")
+                    println(privateKey)
+                }
             }) {
                 Text("Login")
             }
@@ -81,6 +86,9 @@ fun loginScreen() {
                         keyPair.public.encoded.encodeB64()
                     )
                 )
+
+                println("Publickey: ${String(keyPair.public.encoded.encodeB64())}")
+
                 privateKey = keyPair.private
                 FileOutputStream("private_key.pk").use {
                     it.write(keyPair.private.encoded.encodeB64())
@@ -174,8 +182,7 @@ fun mainScreen() {
                         TextField(chatName, { chatName = it })
                         Button({
                             createChatDropdown = false
-                            if (participantsIds.size > 1)
-                                socketChat.sendRequest(CreateChatRequest(chatName, participantsIds.toSet(), null, null))
+                            socketChat.sendRequest(CreateChatRequest(chatName, participantsIds.toSet(), null, null))
                         }) {
                             Text("Create chat!")
                         }
@@ -235,8 +242,8 @@ fun mainScreen() {
                             val owner = users.find { user -> user.id == message.ownerId }
 
                             val symmetric = Utils.decryptSymmetricKey(
-                                chat.encryptedSymmetric,
-                                chat.encryptedDecryptionKey.encryptedPrivateKey,
+                                chat.encryptedSymmetric.decodeB64(),
+                                chat.encryptedDecryptionKey.encryptedSymmetric.decodeB64(),
                                 privateKey
                             )
 
@@ -257,10 +264,10 @@ fun mainScreen() {
                     Button({
                         val symmetric = Utils.decryptSymmetricKey(
                             chat.encryptedSymmetric.decodeB64(),
-                            chat.encryptedDecryptionKey.encryptedPrivateKey.decodeB64(),
+                            chat.encryptedDecryptionKey.encryptedSymmetric.decodeB64(),
                             privateKey
                         )
-                        val encrypted = Utils.encryptMessageWithSymmetric(textMessage, symmetric)
+                        val encrypted = Utils.encryptMessageWithSymmetric(textMessage, symmetric).encodeB64()
                         socketChat.sendRequest(MessageRequest(chat.chatId, MessageType.TEXT, encrypted))
                     }) {
                         Text("Send message")
@@ -288,3 +295,5 @@ fun main() {
     }
 
 }
+
+

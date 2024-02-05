@@ -56,7 +56,6 @@ abstract class SocketChatClient(
                         if (transaction != null)
                             handleTransaction(transaction)
                     }
-
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                     close()

@@ -94,7 +94,7 @@ data class ChatResponse(
 
 data class ParticipantEncryptedDecryptionKey(
     @field:JsonProperty("participant_id") val participantId: Long,
-    @field:JsonProperty("encrypted_key") val encryptedPrivateKey: B64EncryptedPrivateKey
+    @field:JsonProperty("encrypted_key") val encryptedSymmetric: B64EncryptedSymmetric
 )
 
 data class CreateChatRequest(

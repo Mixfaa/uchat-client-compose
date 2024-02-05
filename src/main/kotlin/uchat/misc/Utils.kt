@@ -47,7 +47,7 @@ object Utils {
         encryptedKey: ByteArray,
         key: Key
     ): Key {
-        val encryptedPrivateKey = decrypt(encryptedKey, key, DEFAULT_CIPHER_ALGO).asPrivateKey()
+        val encryptedPrivateKey = decrypt(encryptedKey, key, DEFAULT_CIPHER_ALGO).decodeB64().asPrivateKey()
         return decryptSymmetic(encryptedSymmetric, encryptedPrivateKey, DEFAULT_CIPHER_ALGO, "AES")
     }
 
@@ -60,12 +60,16 @@ object Utils {
     }
 }
 
-fun B64PublicKey.asPublicKey(): Key {
+fun ByteArray.asPublicKey(): Key {
     return KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(this))
 }
 
-fun B64PublicKey.asPrivateKey(): Key {
+fun ByteArray.asPrivateKey(): Key {
     return KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(this))
+}
+
+fun ByteArray.asSymmetric() : SecretKey {
+    return SecretKeySpec(this, "AES")
 }
 
 @OptIn(ExperimentalEncodingApi::class)
