@@ -37,11 +37,9 @@ object Utils {
 
     fun decryptSymmetricKey(
         encryptedSymmetric: ByteArray,
-        encryptedSymmetric2: ByteArray,
         key: Key
     ): Key {
-        val decryptedSymmetric = decrypt(encryptedSymmetric2, key, DEFAULT_CIPHER_ALGO).asSymmetric()
-        return decrypt(encryptedSymmetric, decryptedSymmetric, "AES").asSymmetric()
+        return decrypt(encryptedSymmetric, key, DEFAULT_CIPHER_ALGO).asSymmetric()
     }
 
     fun decryptMessage(

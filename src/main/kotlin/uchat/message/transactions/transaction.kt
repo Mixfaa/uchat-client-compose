@@ -15,7 +15,6 @@ import kotlin.reflect.KClass
 typealias SerializedTransaction = ByteArray
 typealias B64EncryptedSymmetric = ByteArray
 typealias B64EncryptedMessage = ByteArray
-typealias B64EncryptedPrivateKey = ByteArray
 typealias B64PublicKey = ByteArray
 
 enum class TransactionType(val transactionClass: KClass<*>) {
@@ -88,11 +87,12 @@ data class ChatResponse(
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("owner_id") val ownerId: Long,
     @field:JsonProperty("participants_ids") val participants: List<Long>,
-    @field:JsonProperty("encrypted_symmetric") val encryptedSymmetric: B64EncryptedSymmetric,
-    @field:JsonProperty("encrypted_decryption_key") val encryptedDecryptionKey: ParticipantEncryptedDecryptionKey,
-) : TransactionBase()
+    @field:JsonProperty("encrypted_decryption_key") val encryptedDecryptionKey: ParticipantDecryptionKey,
+) : TransactionBase() {
 
-data class ParticipantEncryptedDecryptionKey(
+}
+
+data class ParticipantDecryptionKey(
     @field:JsonProperty("participant_id") val participantId: Long,
     @field:JsonProperty("encrypted_key") val encryptedSymmetric: B64EncryptedSymmetric
 )
@@ -101,7 +101,7 @@ data class CreateChatRequest(
     @field:JsonProperty("name") val chatName: String,
     @field:JsonProperty("participants_ids") val participantsIds: Set<Long>,
     @field:JsonProperty("encrypted_chat_symmetric") val encryptedChatSymmetric: B64EncryptedSymmetric?,
-    @field:JsonProperty("participants_decryption_keys") val participantsDecryptionKeys: MutableList<ParticipantEncryptedDecryptionKey>?
+    @field:JsonProperty("participants_decryption_keys") val participantsDecryptionKeys: MutableList<ParticipantDecryptionKey>?
 ) : TransactionBase()
 
 data class DeleteChatRequest(
@@ -182,7 +182,9 @@ data class MessageEditResponse(
     @field:JsonProperty("message_id") val messageId: Long,
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("new_buffer") val newBuffer: B64EncryptedMessage,
-) : TransactionBase()
+) : TransactionBase() {
+
+}
 
 data class MessageRequest(
     @field:JsonProperty("chat_id") val chatId: Long,
@@ -198,7 +200,9 @@ data class MessageResponse(
     @field:JsonProperty("message_type") val messageType: MessageType,
     @field:JsonProperty("buffer") var message: B64EncryptedMessage,
     @field:JsonProperty("is_edited") var edited: Boolean = false,
-) : TransactionBase()
+) : TransactionBase() {
+
+}
 
 data class StatusResponse(
     @field:JsonProperty("message") val message: String,
