@@ -16,7 +16,6 @@ typealias SerializedTransaction = ByteArray
 typealias B64EncryptedSymmetric = ByteArray
 typealias B64EncryptedMessage = ByteArray
 typealias B64PublicKey = ByteArray
-
 enum class TransactionType(val transactionClass: KClass<*>) {
     STATUS_RESPONSE(StatusResponse::class),
     HEARTBEAT(Heartbeat::class),
@@ -31,6 +30,7 @@ enum class TransactionType(val transactionClass: KClass<*>) {
     REQUEST_DELETE_CHAT(DeleteChatRequest::class),
     REQUEST_FETCH_ACCOUNTS_BY_IDS(FetchAccountsByIdsRequest::class),
     REQUEST_FETCH_CHATS_BY_IDS(FetchChatsByIdsRequest::class),
+    REQUEST_ADD_MEMBER_TO_CHAT(ChatAddMemberRequest::class),
 
     RESPONSE_LOGIN(LoginResponse::class),
     RESPONSE_CHAT(ChatResponse::class),
@@ -40,7 +40,8 @@ enum class TransactionType(val transactionClass: KClass<*>) {
     RESPONSE_DELETE_MESSAGE(MessageDeleteResponse::class),
     RESPONSE_EDIT_MESSAGE(MessageEditResponse::class),
     RESPONSE_FETCH_CHATS(FetchChatsResponse::class),
-    RESPONSE_FETCH_CHAT_MESSAGES(FetchChatMessagesResponse::class);
+    RESPONSE_FETCH_CHAT_MESSAGES(FetchChatMessagesResponse::class),
+    RESPONSE_ADD_MEMBER_TO_CHAT(ChatAddMemberResponse::class);
 
     companion object {
         fun fromTransactionClass(type: TransactionBase): TransactionType {
@@ -82,45 +83,54 @@ sealed class TransactionBase {
     val serialized: SerializedTransaction by lazy { serializeTransaction(this@TransactionBase) }
 }
 
+data class ChatAddMemberRequest(
+    @field:JsonProperty("chat_id") val chatId:Long,
+    @field:JsonProperty("member_id") val memberId: Long,
+    @field:JsonProperty("decryption_keys") val decryptionKeys: List<MemberDecryptionKey>
+) : TransactionBase()
+
+data class ChatAddMemberResponse(
+    @field:JsonProperty("chat_id") val chatId: Long,
+    @field:JsonProperty("member") val member: Account
+) : TransactionBase()
+
 data class ChatResponse(
     @field:JsonProperty("name") val name: String,
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("owner_id") val ownerId: Long,
-    @field:JsonProperty("participants_ids") val participants: List<Long>,
-    @field:JsonProperty("decryption_keys") val decryptionKeys: List<ParticipantDecryptionKey>,
-) : TransactionBase() {
+    @field:JsonProperty("members_ids") val membersIds: List<Long>,
+    @field:JsonProperty("decryption_keys") val decryptionKeys: List<MemberDecryptionKey>,
+) : TransactionBase()
 
-}
-
-data class ParticipantDecryptionKey(
-    @field:JsonProperty("key_seq_id") var keyId: Long,
-    @field:JsonProperty("participant_id") val participantId: Long,
+data class MemberDecryptionKey(
+    @field:JsonProperty("key_seq_id") val keyId: Long,
+    @field:JsonProperty("member_id") val memberId: Long,
     @field:JsonProperty("encrypted_key") val encryptedSymmetric: B64EncryptedSymmetric
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as ParticipantDecryptionKey
+        other as MemberDecryptionKey
 
         if (keyId != other.keyId) return false
-        if (participantId != other.participantId) return false
+        if (memberId != other.memberId) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = keyId.hashCode()
-        result = 31 * result + participantId.hashCode()
+        result = 31 * result + memberId.hashCode()
         return result
     }
 }
 
 data class CreateChatRequest(
     @field:JsonProperty("name") val chatName: String,
-    @field:JsonProperty("participants_ids") val participantsIds: Set<Long>,
+    @field:JsonProperty("members_ids") val membersIds: Set<Long>,
     @field:JsonProperty("encrypted_chat_symmetric") val encryptedChatSymmetric: B64EncryptedSymmetric?,
-    @field:JsonProperty("participants_decryption_keys") val participantsDecryptionKeys: MutableList<ParticipantDecryptionKey>?
+    @field:JsonProperty("members_decryption_keys") val membersDecryptionKeys: MutableList<MemberDecryptionKey>?
 ) : TransactionBase()
 
 data class DeleteChatRequest(
@@ -216,9 +226,9 @@ data class MessageResponse(
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("timestamp") val timestamp: Long,
     @field:JsonProperty("message_type") val messageType: MessageType,
-    @field:JsonProperty("buffer") var message: B64EncryptedMessage,
+    @field:JsonProperty("buffer") val message: B64EncryptedMessage,
     @field:JsonProperty("key_id") val keyId: Long,
-    @field:JsonProperty("is_edited") var edited: Boolean = false,
+    @field:JsonProperty("is_edited") val edited: Boolean = false,
 ) : TransactionBase() {
 
 }

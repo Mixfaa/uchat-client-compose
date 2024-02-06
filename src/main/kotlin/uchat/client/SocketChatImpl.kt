@@ -39,8 +39,12 @@ class SocketChatImpl(
             is MessageDeleteResponse -> messages.removeIf { it.messageId == transaction.messageId && it.chatId == transaction.chatId }
             is MessageEditResponse -> {
                 val message = messages.find { it.messageId == transaction.messageId && it.chatId == transaction.chatId }
-                message?.message = transaction.newBuffer
-                message?.edited = true
+                if (message != null) {
+                    messages.remove(message)
+
+                    val updatedMessage = message.copy(message = transaction.newBuffer, edited = true)
+                    messages.add(updatedMessage)
+                }
             }
 
             is MessageResponse -> handleNewMessages(listOf(transaction))

@@ -40,7 +40,6 @@ private val socketChat = SocketChatImpl("192.168.0.59", 8080, ::println, {}) // 
 
 private lateinit var privateKey: Key
 
-@OptIn(ExperimentalEncodingApi::class)
 @Composable
 fun loginScreen() {
     var username by remember { mutableStateOf("") }
@@ -59,7 +58,7 @@ fun loginScreen() {
             TextField(password, { password = it })
 
             Button({
-                FileInputStream("private_key.pk").use {
+                FileInputStream("$username.pk").use {
                     privateKey = it.readBytes().decodeB64().asPrivateKey()
                     println("Loaded")
                     println(privateKey)
@@ -69,7 +68,7 @@ fun loginScreen() {
             }
             Button({
                 socketChat.sendRequest(LoginRequest(username, password, null))
-                FileInputStream("private_key.pk").use {
+                FileInputStream("$username.pk").use {
                     privateKey = it.readBytes().decodeB64().asPrivateKey()
                     println("Loaded")
                     println(privateKey)
@@ -90,7 +89,7 @@ fun loginScreen() {
                 println("Publickey: ${String(keyPair.public.encoded.encodeB64())}")
 
                 privateKey = keyPair.private
-                FileOutputStream("private_key.pk").use {
+                FileOutputStream("$username.pk").use {
                     it.write(keyPair.private.encoded.encodeB64())
                 }
             }) {

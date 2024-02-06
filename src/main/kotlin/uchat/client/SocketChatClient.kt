@@ -52,7 +52,9 @@ abstract class SocketChatClient(
                     val message = inputReader.readLine()
 
                     for (json in Utils.splitJsons(message)) {
+                        println(json)
                         val transaction = deserializeTransaction(json).getOrNull()
+                        println(transaction)
                         if (transaction != null)
                             handleTransaction(transaction)
                     }
