@@ -87,15 +87,34 @@ data class ChatResponse(
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("owner_id") val ownerId: Long,
     @field:JsonProperty("participants_ids") val participants: List<Long>,
-    @field:JsonProperty("encrypted_decryption_key") val encryptedDecryptionKey: ParticipantDecryptionKey,
+    @field:JsonProperty("decryption_keys") val decryptionKeys: List<ParticipantDecryptionKey>,
 ) : TransactionBase() {
 
 }
 
 data class ParticipantDecryptionKey(
+    @field:JsonProperty("key_seq_id") var keyId: Long,
     @field:JsonProperty("participant_id") val participantId: Long,
     @field:JsonProperty("encrypted_key") val encryptedSymmetric: B64EncryptedSymmetric
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ParticipantDecryptionKey
+
+        if (keyId != other.keyId) return false
+        if (participantId != other.participantId) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = keyId.hashCode()
+        result = 31 * result + participantId.hashCode()
+        return result
+    }
+}
 
 data class CreateChatRequest(
     @field:JsonProperty("name") val chatName: String,
@@ -182,12 +201,11 @@ data class MessageEditResponse(
     @field:JsonProperty("message_id") val messageId: Long,
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("new_buffer") val newBuffer: B64EncryptedMessage,
-) : TransactionBase() {
-
-}
+) : TransactionBase()
 
 data class MessageRequest(
     @field:JsonProperty("chat_id") val chatId: Long,
+    @field:JsonProperty("key_id") val keyId: Long,
     @field:JsonProperty("message_type") val messageType: MessageType,
     @field:JsonProperty("message_buffer") val buffer: B64EncryptedMessage,
 ) : TransactionBase()
@@ -199,6 +217,7 @@ data class MessageResponse(
     @field:JsonProperty("timestamp") val timestamp: Long,
     @field:JsonProperty("message_type") val messageType: MessageType,
     @field:JsonProperty("buffer") var message: B64EncryptedMessage,
+    @field:JsonProperty("key_id") val keyId: Long,
     @field:JsonProperty("is_edited") var edited: Boolean = false,
 ) : TransactionBase() {
 
@@ -207,5 +226,4 @@ data class MessageResponse(
 data class StatusResponse(
     @field:JsonProperty("message") val message: String,
     @field:JsonProperty("response_for") val responseFor: TransactionType,
-    @field:JsonProperty("is_failed") val fail: Boolean = true,
 ) : TransactionBase()

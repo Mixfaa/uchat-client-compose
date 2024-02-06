@@ -242,7 +242,7 @@ fun mainScreen() {
                             val owner = users.find { user -> user.id == message.ownerId }
 
                             val symmetric = Utils.decryptSymmetricKey(
-                                chat.encryptedDecryptionKey.encryptedSymmetric.decodeB64(),
+                                chat.decryptionKeys.find { it.keyId == message.keyId }!!.encryptedSymmetric.decodeB64(),
                                 privateKey
                             )
 
@@ -261,12 +261,21 @@ fun mainScreen() {
                     var textMessage by remember { mutableStateOf("") }
                     TextField(textMessage, { textMessage = it })
                     Button({
+                        val usedSymmetric = chat.decryptionKeys.lastOrNull()!!
+
                         val symmetric = Utils.decryptSymmetricKey(
-                            chat.encryptedDecryptionKey.encryptedSymmetric.decodeB64(),
+                            usedSymmetric.encryptedSymmetric.decodeB64(),
                             privateKey
                         )
                         val encrypted = Utils.encryptMessageWithSymmetric(textMessage, symmetric).encodeB64()
-                        socketChat.sendRequest(MessageRequest(chat.chatId, MessageType.TEXT, encrypted))
+                        socketChat.sendRequest(
+                            MessageRequest(
+                                chat.chatId,
+                                usedSymmetric.keyId,
+                                MessageType.TEXT,
+                                encrypted
+                            )
+                        )
                     }) {
                         Text("Send message")
                     }
