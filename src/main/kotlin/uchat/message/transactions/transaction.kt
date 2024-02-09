@@ -16,10 +16,12 @@ typealias SerializedTransaction = ByteArray
 typealias B64EncryptedSymmetric = ByteArray
 typealias B64EncryptedMessage = ByteArray
 typealias B64PublicKey = ByteArray
+
 enum class TransactionType(val transactionClass: KClass<*>) {
     STATUS_RESPONSE(StatusResponse::class),
     HEARTBEAT(Heartbeat::class),
     REQUEST_LOGIN(LoginRequest::class),
+    REQUEST_REGISTER(RegisterRequest::class),
     REQUEST_MESSAGE(MessageRequest::class),
     REQUEST_CREATE_CHAT(CreateChatRequest::class),
     REQUEST_FETCH_ACCOUNTS(FetchAccountsRequest::class),
@@ -58,14 +60,17 @@ enum class TransactionType(val transactionClass: KClass<*>) {
     }
 }
 
-private val jsonMapper = ObjectMapper().enable(SerializationFeature.WRITE_ENUMS_USING_INDEX).registerKotlinModule()
+fun transactionsMapper(): ObjectMapper =
+    ObjectMapper().enable(SerializationFeature.WRITE_ENUMS_USING_INDEX).registerKotlinModule()
+
+private val transactionsMapper = transactionsMapper()
 
 fun serializeTransaction(transaction: TransactionBase): SerializedTransaction {
-    return jsonMapper.writeValueAsBytes(transaction) + '\n'.code.toByte()
+    return transactionsMapper.writeValueAsBytes(transaction) + '\n'.code.toByte()
 }
 
 fun deserializeTransaction(json: String): Result<TransactionBase> = runCatching {
-    jsonMapper.readValue<TransactionBase>(json)
+    transactionsMapper.readValue<TransactionBase>(json)
 }
 
 @JsonTypeInfo(
@@ -84,7 +89,7 @@ sealed class TransactionBase {
 }
 
 data class ChatAddMemberRequest(
-    @field:JsonProperty("chat_id") val chatId:Long,
+    @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("member_id") val memberId: Long,
     @field:JsonProperty("decryption_keys") val decryptionKeys: List<MemberDecryptionKey>
 ) : TransactionBase()
@@ -100,7 +105,9 @@ data class ChatResponse(
     @field:JsonProperty("owner_id") val ownerId: Long,
     @field:JsonProperty("members_ids") val membersIds: List<Long>,
     @field:JsonProperty("decryption_keys") val decryptionKeys: List<MemberDecryptionKey>,
-) : TransactionBase()
+) : TransactionBase() {
+
+}
 
 data class MemberDecryptionKey(
     @field:JsonProperty("key_seq_id") val keyId: Long,
@@ -184,13 +191,18 @@ data object Heartbeat : TransactionBase()
 
 data class LoginRequest(
     @field:JsonProperty("username") val username: String,
-    @field:JsonProperty("password") val password: String,
-    @field:JsonProperty("public_key") val publicKey: B64PublicKey?
+    @field:JsonProperty("password") val password: String
 ) : TransactionBase()
 
 data class LoginResponse(
     @field:JsonProperty("user") val user: Account,
     @field:JsonProperty("chats_ids") val chatsIds: List<Long>,
+) : TransactionBase()
+
+data class RegisterRequest(
+    @field:JsonProperty("username") val username: String,
+    @field:JsonProperty("password") val password: String,
+    @field:JsonProperty("public_key") val publicKey: B64PublicKey
 ) : TransactionBase()
 
 data class MessageDeleteRequest(
@@ -211,7 +223,9 @@ data class MessageEditResponse(
     @field:JsonProperty("message_id") val messageId: Long,
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("new_buffer") val newBuffer: B64EncryptedMessage,
-) : TransactionBase()
+) : TransactionBase() {
+
+}
 
 data class MessageRequest(
     @field:JsonProperty("chat_id") val chatId: Long,

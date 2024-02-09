@@ -67,7 +67,7 @@ fun loginScreen() {
                 Text("Load private key")
             }
             Button({
-                socketChat.sendRequest(LoginRequest(username, password, null))
+                socketChat.sendRequest(LoginRequest(username, password))
                 FileInputStream("$username.pk").use {
                     privateKey = it.readBytes().decodeB64().asPrivateKey()
                     println("Loaded")
@@ -79,7 +79,7 @@ fun loginScreen() {
             Button({
                 val keyPair = generateKeyPair()
                 socketChat.sendRequest(
-                    LoginRequest(
+                    RegisterRequest(
                         username,
                         password,
                         keyPair.public.encoded.encodeB64()
