@@ -1,11 +1,11 @@
 package uchat.message
 
-import uchat.message.transactions.B64PublicKey
+import uchat.message.transactions.PublicKey
 
 data class Account(
     val username: String,
     var id: Long,
-    val publicKey: B64PublicKey,
+    val publicKey: PublicKey,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

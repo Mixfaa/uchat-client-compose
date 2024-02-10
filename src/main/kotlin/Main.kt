@@ -19,15 +19,12 @@ import uchat.message.Account
 import uchat.message.transactions.*
 import uchat.misc.Utils
 import uchat.misc.asPrivateKey
-import uchat.misc.decodeB64
-import uchat.misc.encodeB64
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.security.Key
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.Security
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun generateKeyPair(): KeyPair {
     val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
@@ -59,7 +56,7 @@ fun loginScreen() {
 
             Button({
                 FileInputStream("$username.pk").use {
-                    privateKey = it.readBytes().decodeB64().asPrivateKey()
+                    privateKey = it.readBytes().asPrivateKey()
                     println("Loaded")
                     println(privateKey)
                 }
@@ -69,7 +66,7 @@ fun loginScreen() {
             Button({
                 socketChat.sendRequest(LoginRequest(username, password))
                 FileInputStream("$username.pk").use {
-                    privateKey = it.readBytes().decodeB64().asPrivateKey()
+                    privateKey = it.readBytes().asPrivateKey()
                     println("Loaded")
                     println(privateKey)
                 }
@@ -82,15 +79,15 @@ fun loginScreen() {
                     RegisterRequest(
                         username,
                         password,
-                        keyPair.public.encoded.encodeB64()
+                        keyPair.public.encoded
                     )
                 )
 
-                println("Publickey: ${String(keyPair.public.encoded.encodeB64())}")
+                println("Publickey: ${String(keyPair.public.encoded)}")
 
                 privateKey = keyPair.private
                 FileOutputStream("$username.pk").use {
-                    it.write(keyPair.private.encoded.encodeB64())
+                    it.write(keyPair.private.encoded)
                 }
             }) {
                 Text("Register")
@@ -241,7 +238,7 @@ fun mainScreen() {
                             val owner = users.find { user -> user.id == message.ownerId }
 
                             val symmetric = Utils.decryptSymmetricKey(
-                                chat.decryptionKeys.find { it.keyId == message.keyId }!!.encryptedSymmetric.decodeB64(),
+                                chat.decryptionKeys.find { it.keyId == message.keyId }!!.encryptedSymmetric,
                                 privateKey
                             )
 
@@ -263,10 +260,10 @@ fun mainScreen() {
                         val usedSymmetric = chat.decryptionKeys.lastOrNull()!!
 
                         val symmetric = Utils.decryptSymmetricKey(
-                            usedSymmetric.encryptedSymmetric.decodeB64(),
+                            usedSymmetric.encryptedSymmetric,
                             privateKey
                         )
-                        val encrypted = Utils.encryptMessageWithSymmetric(textMessage, symmetric).encodeB64()
+                        val encrypted = Utils.encryptMessageWithSymmetric(textMessage, symmetric)
                         socketChat.sendRequest(
                             MessageRequest(
                                 chat.chatId,
