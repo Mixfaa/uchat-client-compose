@@ -25,6 +25,7 @@ import java.security.Key
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.Security
+import kotlin.math.max
 
 fun generateKeyPair(): KeyPair {
     val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
@@ -33,7 +34,8 @@ fun generateKeyPair(): KeyPair {
 }
 
 private val defaultRoundedShape = RoundedCornerShape(15.dp)
-private val socketChat = SocketChatImpl("192.168.0.59", 8080, ::println, {}) // а мне похуй (пока что)
+private const val SERVER_IP = "192.168.0.59"
+private val socketChat = SocketChatImpl(SERVER_IP, 8080, ::println, {}) // а мне похуй (пока что)
 
 private lateinit var privateKey: Key
 
@@ -282,6 +284,40 @@ fun mainScreen() {
 }
 
 fun main() {
+    khttp.async.get("http://$SERVER_IP:8081/static/transactions/schema/md5", onResponse =
+    {
+        if (this.text != TransactionUtils.schemaMD5Hash) {
+            System.err.println("schema MD5 hash don`t match")
+            khttp.async.get("http://$SERVER_IP:8081/static/transactions/schema", onResponse = {
+
+                val mySchemas = TransactionUtils.schema.split('\n')
+                val serverSchemas = this.text.split('\n')
+
+                for (i in 0 until max(mySchemas.size, serverSchemas.size)) {
+                    val mySchema = mySchemas.getOrNull(i)
+                    val serverSchema = serverSchemas.getOrNull(i)
+
+                    if (mySchema == null && serverSchema != null) {
+                        System.err.println("Server have schema: $serverSchema")
+                        continue
+                    } else if (mySchema != null && serverSchema == null) {
+                        System.err.println("Client have schema: $mySchema")
+                        continue
+                    }
+
+                    mySchema ?: continue
+                    serverSchema ?: continue
+
+                    if (mySchema != serverSchema) {
+                        System.err.println("Schemas difference: ")
+                        println("Client schema: $mySchema")
+                        println("Server schema: $serverSchema")
+                    }
+                }
+            })
+        } else println("Schemas matches")
+    })
+
     Security.addProvider(org.bouncycastle.jce.provider.BouncyCastleProvider())
     application {
         Window(onCloseRequest = ::exitApplication) {

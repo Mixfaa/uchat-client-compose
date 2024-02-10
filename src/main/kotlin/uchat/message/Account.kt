@@ -4,8 +4,8 @@ import uchat.message.transactions.PublicKey
 
 data class Account(
     val username: String,
-    var id: Long,
     val publicKey: PublicKey,
+    var id: Long,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

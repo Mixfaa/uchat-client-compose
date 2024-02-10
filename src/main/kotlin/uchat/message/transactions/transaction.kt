@@ -10,6 +10,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import uchat.message.Account
 import uchat.message.TransactionTypeIdResolver
+import java.security.MessageDigest
 import kotlin.reflect.KClass
 
 typealias SerializedTransaction = ByteArray
@@ -60,10 +61,10 @@ enum class TransactionType(val transactionClass: KClass<*>) {
     }
 }
 
-fun transactionsMapper(): ObjectMapper =
+fun createTransactionsMapper(): ObjectMapper =
     ObjectMapper().enable(SerializationFeature.WRITE_ENUMS_USING_INDEX).registerKotlinModule()
 
-private val transactionsMapper = transactionsMapper()
+private val transactionsMapper = createTransactionsMapper()
 
 fun serializeTransaction(transaction: TransactionBase): SerializedTransaction {
     return transactionsMapper.writeValueAsBytes(transaction) + '\n'.code.toByte()
@@ -71,6 +72,18 @@ fun serializeTransaction(transaction: TransactionBase): SerializedTransaction {
 
 fun deserializeTransaction(json: String): Result<TransactionBase> = runCatching {
     transactionsMapper.readValue<TransactionBase>(json)
+}
+
+@OptIn(ExperimentalStdlibApi::class)
+object TransactionUtils {
+    val schema = buildString {
+        for (type in TransactionType.entries) {
+            this.append(type.name)
+            this.append(' ')
+            this.appendLine(transactionsMapper.generateJsonSchema(type.transactionClass.java).toString())
+        }
+    }
+    val schemaMD5Hash = MessageDigest.getInstance("MD5").digest(schema.toByteArray()).toHexString()
 }
 
 @JsonTypeInfo(
@@ -82,10 +95,10 @@ fun deserializeTransaction(json: String): Result<TransactionBase> = runCatching 
 @JsonTypeIdResolver(TransactionTypeIdResolver::class)
 sealed class TransactionBase {
     @get:JsonIgnore
-    val type: TransactionType by lazy { TransactionType.fromTransactionClass(this@TransactionBase) }
+    val type: TransactionType by lazy { TransactionType.fromTransactionClass(this) }
 
     @get:JsonIgnore
-    val serialized: SerializedTransaction by lazy { serializeTransaction(this@TransactionBase) }
+    val serialized: SerializedTransaction by lazy { serializeTransaction(this) }
 }
 
 data class ChatAddMemberRequest(
@@ -105,9 +118,7 @@ data class ChatResponse(
     @field:JsonProperty("owner_id") val ownerId: Long,
     @field:JsonProperty("members_ids") val membersIds: List<Long>,
     @field:JsonProperty("decryption_keys") val decryptionKeys: List<MemberDecryptionKey>,
-) : TransactionBase() {
-
-}
+) : TransactionBase()
 
 data class MemberDecryptionKey(
     @field:JsonProperty("key_seq_id") val keyId: Long,
@@ -137,7 +148,7 @@ data class CreateChatRequest(
     @field:JsonProperty("name") val chatName: String,
     @field:JsonProperty("members_ids") val membersIds: Set<Long>,
     @field:JsonProperty("encrypted_chat_symmetric") val encryptedChatSymmetric: EncryptedSymmetric?,
-    @field:JsonProperty("members_decryption_keys") val membersDecryptionKeys: MutableList<MemberDecryptionKey>?
+    @field:JsonProperty("members_decryption_keys") val membersDecryptionKeys: Set<MemberDecryptionKey>?
 ) : TransactionBase()
 
 data class DeleteChatRequest(
@@ -223,9 +234,7 @@ data class MessageEditResponse(
     @field:JsonProperty("message_id") val messageId: Long,
     @field:JsonProperty("chat_id") val chatId: Long,
     @field:JsonProperty("new_buffer") val newBuffer: EncryptedMessage,
-) : TransactionBase() {
-
-}
+) : TransactionBase()
 
 data class MessageRequest(
     @field:JsonProperty("chat_id") val chatId: Long,
@@ -243,9 +252,7 @@ data class MessageResponse(
     @field:JsonProperty("buffer") val message: EncryptedMessage,
     @field:JsonProperty("key_id") val keyId: Long,
     @field:JsonProperty("is_edited") val edited: Boolean = false,
-) : TransactionBase() {
-
-}
+) : TransactionBase()
 
 data class StatusResponse(
     @field:JsonProperty("message") val message: String,
