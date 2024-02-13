@@ -3,7 +3,6 @@ package uchat.client
 import kotlinx.coroutines.*
 import uchat.message.transactions.TransactionBase
 import uchat.message.transactions.deserializeTransaction
-import uchat.misc.Utils
 import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.OutputStream
@@ -15,9 +14,9 @@ import javax.net.ssl.*
 abstract class SocketChatClient(
     address: String,
     port: Int,
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) : AutoCloseable {
     private val socket: SSLSocket
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + Job())
     private val outputStream: OutputStream
     private val inputReader: BufferedReader
 
@@ -48,30 +47,33 @@ abstract class SocketChatClient(
 
         coroutineScope.launch {
             while (!socket.isClosed) {
-                try {
-                    val message = inputReader.readLine()
 
-                    for (json in Utils.splitJsons(message)) {
-                        println(json)
-                        val transaction = deserializeTransaction(json).getOrNull()
-                        println(transaction)
-                        if (transaction != null)
-                            handleTransaction(transaction)
-                    }
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                    close()
+                val message: String = inputReader.readLine() ?: continue
+
+                for (json in message.split("\n").filter { it.isNotBlank() || it.isNotEmpty() }) {
+                    println(json)
+                    val transaction = deserializeTransaction(json).getOrNull()
+                    println(transaction)
+                    if (transaction != null)
+                        handleTransaction(transaction)
                 }
+
             }
-        }
+        }.invokeOnCompletion(::handleCoroutineCompletion)
     }
 
     abstract fun handleTransaction(transaction: TransactionBase)
 
     fun sendRequest(request: TransactionBase) = coroutineScope.launch {
         outputStream.write(request.serialized)
+    }.invokeOnCompletion(::handleCoroutineCompletion)
+    private fun handleCoroutineCompletion(throwable: Throwable?) = when (throwable) {
+        null -> {}
+        else -> {
+            throwable.printStackTrace()
+            close()
+        }
     }
-
     override fun close() {
         coroutineScope.cancel()
         socket.close()

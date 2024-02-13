@@ -15,9 +15,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 object Utils {
     private const val DEFAULT_CIPHER_ALGO = "RSA/ECB/PKCS1Padding"
 
-    fun splitJsons(string: String): List<String> {
-        return string.split("\n").filter { it.isNotBlank() || it.isNotEmpty() }.toList()
-    }
 
     fun encrypt(data: ByteArray, key: Key, transformation: String): ByteArray {
         val cipher = Cipher.getInstance(transformation)
@@ -46,7 +43,7 @@ object Utils {
         data: ByteArray,
         symmetric: Key
     ): String {
-        val decrypted = decrypt(data.decodeB64(), symmetric, "AES")
+        val decrypted = decrypt(data, symmetric, "AES")
         return String(decrypted)
     }
 }
